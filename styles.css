@@ -1,0 +1,136 @@
+/* styles.css */
+
+/* Font-Face Declarations */
+@font-face {
+  font-family: 'Poppins';
+  src: url('fonts/Poppins-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('fonts/Poppins-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('fonts/Poppins-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Fluorescent Dot */
+.fluent-dot {
+  position: fixed;
+  left: 20px; /* Initial position */
+  top: 20px;  /* Initial position */
+  width: 25px;
+  height: 25px;
+  background: linear-gradient(45deg, #0ff, #00f);
+  border-radius: 50%;
+  cursor: grab; /* Indicate draggable element */
+  z-index: 10000;
+  animation: glow 2s infinite;
+  opacity: 0.8;
+  transition: transform 0.2s ease-in-out;
+}
+
+.fluent-dot:hover {
+  animation: rotate 2s linear infinite;
+  transform: scale(1.1);
+}
+
+.fluent-dot:active {
+  cursor: grabbing;
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px #0ff; }
+  50% { box-shadow: 0 0 20px #0ff; }
+  100% { box-shadow: 0 0 5px #0ff; }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Summary Popup */
+.summary-popup {
+  position: fixed;
+  bottom: 60px;
+  right: 20px;
+  width: 350px;
+  max-height: 50%;
+  overflow-y: auto;
+  padding: 20px 20px 15px 20px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  z-index: 10000;
+  animation: popup-animation 0.4s ease-out;
+}
+
+/* Popup Animation */
+@keyframes popup-animation {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Popup Content */
+.popup-content {
+  margin-top: 30px; /* Add margin to avoid overlap with close button */
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: inherit; /* Inherit color based on theme */
+}
+
+/* Close Button */
+.close-button {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  color: #000;
+}
+
+/* Light Theme */
+.summary-popup[data-theme="light"] {
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+}
+
+/* Dark Theme */
+.summary-popup[data-theme="dark"] {
+  background: rgba(40, 44, 52, 0.95);
+  color: #ddd;
+}
+
+/* Adjust close button color for dark theme */
+.summary-popup[data-theme="dark"] .close-button {
+  color: #bbb;
+}
+
+.summary-popup[data-theme="dark"] .close-button:hover {
+  color: #fff;
+}
