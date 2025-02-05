@@ -2,6 +2,14 @@
 const dot = document.createElement('div');
 dot.id = 'ai-summarizer-dot';
 dot.classList.add('fluent-dot');
+
+// Set initial position to bottom-right corner
+dot.style.position = 'fixed';
+dot.style.right = '20px';
+dot.style.bottom = '20px';
+dot.style.left = 'auto'; // Ensure left is auto
+dot.style.top = 'auto'; // Ensure top is auto
+
 document.body.appendChild(dot);
 
 // Variables for dragging
