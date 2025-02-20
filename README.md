@@ -1,6 +1,8 @@
 
 
 ---
+![My_Logo_Edited-removebg-preview](https://github.com/user-attachments/assets/a95cd07f-9a2f-4520-b183-dfa7b7eb0f1d)
+
 
 # AI Summarizer Dot Extension
 
