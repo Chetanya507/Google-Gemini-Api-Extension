@@ -1,3 +1,5 @@
+// content.js
+
 // Create the dot element
 const dot = document.createElement('div');
 dot.id = 'ai-summarizer-dot';
@@ -71,7 +73,7 @@ chrome.runtime.onMessage.addListener((request) => {
   }
 });
 
-// Function to display the popup
+// Function to display the popup with word-by-word animation
 function displayPopup(summary) {
   console.log('Displaying summary:', summary);
 
@@ -88,7 +90,7 @@ function displayPopup(summary) {
     closeButton = document.createElement('span');
     closeButton.id = 'ai-summarizer-close-button';
     closeButton.classList.add('close-button');
-    closeButton.innerHTML = '&times;';
+    closeButton.innerHTML = '×';
 
     // Create the content container
     content = document.createElement('div');
@@ -108,8 +110,8 @@ function displayPopup(summary) {
     });
   }
 
-  // Update the content
-  content.innerText = summary;
+  // Clear previous content and show the popup
+  content.innerText = '';
   popup.style.display = 'block';
 
   // Apply the selected theme
@@ -117,4 +119,28 @@ function displayPopup(summary) {
     const theme = data.selectedTheme || 'light';
     popup.setAttribute('data-theme', theme);
   });
+
+  // If the summary is an error or status message, display it immediately
+  if (summary.startsWith('Error:') || summary === 'Summarizing, please wait...') {
+    content.innerText = summary;
+    return;
+  }
+
+  // Split the summary into words
+  const words = summary.split(' ');
+  let wordIndex = 0;
+
+  // Function to append words with a delay
+  function typeWord() {
+    if (wordIndex < words.length) {
+      content.innerText += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
+      wordIndex++;
+      // Scroll to the bottom of the content if it overflows
+      content.scrollTop = content.scrollHeight;
+      setTimeout(typeWord, 100); // Adjust delay (in milliseconds) as needed
+    }
+  }
+
+  // Start the typing animation
+  typeWord();
 }
