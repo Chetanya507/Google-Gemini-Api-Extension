@@ -135,3 +135,33 @@
 .summary-popup[data-theme="dark"] .close-button:hover {
   color: #fff;
 }
+
+/* Add to the end of styles.css */
+
+/* List styling */
+.summary-popup ul, .summary-popup ol {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.summary-popup li {
+  margin: 5px 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.summary-popup p {
+  margin: 10px 0;
+}
+
+/* Ensure paragraphs and lists inherit theme colors */
+.summary-popup[data-theme="light"] p,
+.summary-popup[data-theme="light"] li {
+  color: #333;
+}
+
+.summary-popup[data-theme="dark"] p,
+.summary-popup[data-theme="dark"] li {
+  color: #ddd;
+}

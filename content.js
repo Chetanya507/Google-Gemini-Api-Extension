@@ -1,20 +1,15 @@
-// content.js
-
-// Create the dot element
 const dot = document.createElement('div');
 dot.id = 'ai-summarizer-dot';
 dot.classList.add('fluent-dot');
 
-// Set initial position to bottom-right corner
 dot.style.position = 'fixed';
 dot.style.right = '20px';
 dot.style.bottom = '20px';
-dot.style.left = 'auto'; // Ensure left is auto
-dot.style.top = 'auto'; // Ensure top is auto
+dot.style.left = 'auto';
+dot.style.top = 'auto';
 
 document.body.appendChild(dot);
 
-// Variables for dragging
 let isDragging = false;
 let startX, startY, startDotX, startDotY;
 
@@ -24,8 +19,6 @@ dot.addEventListener('mousedown', (e) => {
   startY = e.clientY;
   startDotX = dot.offsetLeft;
   startDotY = dot.offsetTop;
-
-  // Prevent default behavior to avoid text selection
   e.preventDefault();
 });
 
@@ -33,28 +26,20 @@ document.addEventListener('mousemove', (e) => {
   if (isDragging) {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-
     dot.style.left = startDotX + dx + 'px';
     dot.style.top = startDotY + dy + 'px';
-    dot.style.right = 'auto'; // Reset right property
-    dot.style.bottom = 'auto'; // Reset bottom property
+    dot.style.right = 'auto';
+    dot.style.bottom = 'auto';
   }
 });
 
 document.addEventListener('mouseup', () => {
-  if (isDragging) {
-    isDragging = false;
-  }
+  if (isDragging) isDragging = false;
 });
 
-// Add click event to the dot
 dot.addEventListener('click', () => {
   displayPopup('Summarizing, please wait...');
-
-  // Capture the URL of the current webpage
   const pageUrl = window.location.href;
-
-  // Send a message to the background script with the URL
   chrome.runtime.sendMessage({ action: 'summarize', url: pageUrl }, (response) => {
     if (chrome.runtime.lastError) {
       console.error('Error sending message:', chrome.runtime.lastError);
@@ -65,7 +50,6 @@ dot.addEventListener('click', () => {
   });
 });
 
-// Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request) => {
   console.log('Message received in content script:', request);
   if (request.action === 'displaySummary') {
@@ -73,7 +57,80 @@ chrome.runtime.onMessage.addListener((request) => {
   }
 });
 
-// Function to display the popup with word-by-word animation
+// Function to parse markdown and convert to HTML
+function parseMarkdown(text) {
+  let lines = text.split('\n');
+  let html = '';
+  let inUnorderedList = false;
+  let inOrderedList = false;
+
+  lines.forEach((line, index) => {
+    line = line.trim();
+
+    // Handle unordered lists (- or * at start)
+    if (line.match(/^[-*]\s+(.+)/)) {
+      if (!inUnorderedList) {
+        if (inOrderedList) {
+          html += '</ol>';
+          inOrderedList = false;
+        }
+        html += '<ul>';
+        inUnorderedList = true;
+      }
+      const content = line.replace(/^[-*]\s+(.+)/, '$1');
+      html += `<li>${parseInlineMarkdown(content)}</li>`;
+    }
+    // Handle ordered lists (1. 2. etc.)
+    else if (line.match(/^\d+\.\s+(.+)/)) {
+      if (!inOrderedList) {
+        if (inUnorderedList) {
+          html += '</ul>';
+          inUnorderedList = false;
+        }
+        html += '<ol>';
+        inOrderedList = true;
+      }
+      const content = line.replace(/^\d+\.\s+(.+)/, '$1');
+      html += `<li>${parseInlineMarkdown(content)}</li>`;
+    }
+    // Regular line
+    else {
+      if (inUnorderedList) {
+        html += '</ul>';
+        inUnorderedList = false;
+      }
+      if (inOrderedList) {
+        html += '</ol>';
+        inOrderedList = false;
+      }
+      if (line) {
+        html += `<p>${parseInlineMarkdown(line)}</p>`;
+      }
+    }
+
+    // Add line break if not the last line and not part of a list
+    if (index < lines.length - 1 && !inUnorderedList && !inOrderedList && line) {
+      html += '<br>';
+    }
+  });
+
+  // Close any open lists
+  if (inUnorderedList) html += '</ul>';
+  if (inOrderedList) html += '</ol>';
+
+  return html;
+}
+
+// Function to parse inline markdown (bold, italics)
+function parseInlineMarkdown(text) {
+  let html = text;
+  html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<b><i>$1</i></b>'); // Bold + Italics
+  html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');           // Bold
+  html = html.replace(/\*(.*?)\*/g, '<i>$1</i>');              // Italics
+  html = html.replace(/_(.*?)_/g, '<i>$1</i>');                // Italics with underscore
+  return html;
+}
+
 function displayPopup(summary) {
   console.log('Displaying summary:', summary);
 
@@ -86,61 +143,73 @@ function displayPopup(summary) {
     popup.id = 'ai-summarizer-popup';
     popup.classList.add('summary-popup');
 
-    // Create the close button
     closeButton = document.createElement('span');
     closeButton.id = 'ai-summarizer-close-button';
     closeButton.classList.add('close-button');
     closeButton.innerHTML = '×';
 
-    // Create the content container
     content = document.createElement('div');
     content.id = 'ai-summarizer-content';
     content.classList.add('popup-content');
 
-    // Append elements to the popup
     popup.appendChild(closeButton);
     popup.appendChild(content);
-
-    // Append the popup to the body
     document.body.appendChild(popup);
 
-    // Add event listener to close the popup
     closeButton.addEventListener('click', () => {
       popup.style.display = 'none';
     });
   }
 
-  // Clear previous content and show the popup
-  content.innerText = '';
+  content.innerHTML = '';
   popup.style.display = 'block';
 
-  // Apply the selected theme
   chrome.storage.sync.get('selectedTheme', (data) => {
     const theme = data.selectedTheme || 'light';
     popup.setAttribute('data-theme', theme);
   });
 
-  // If the summary is an error or status message, display it immediately
   if (summary.startsWith('Error:') || summary === 'Summarizing, please wait...') {
     content.innerText = summary;
     return;
   }
 
-  // Split the summary into words
-  const words = summary.split(' ');
-  let wordIndex = 0;
+  // Split summary into lines for structural formatting
+  const lines = summary.split('\n').filter(line => line.trim());
+  let lineIndex = 0;
 
-  // Function to append words with a delay
-  function typeWord() {
-    if (wordIndex < words.length) {
-      content.innerText += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
-      wordIndex++;
-      // Scroll to the bottom of the content if it overflows
+  function typeLine() {
+    if (lineIndex < lines.length) {
+      const line = lines[lineIndex];
+      let lineHtml = '';
+
+      // Handle bullet points or numbered lists
+      if (line.match(/^[-*]\s+(.+)/)) {
+        lineHtml = `<li>${parseInlineMarkdown(line.replace(/^[-*]\s+(.+)/, '$1'))}</li>`;
+        if (lineIndex === 0 || !lines[lineIndex - 1].match(/^[-*]\s+(.+)/)) {
+          lineHtml = '<ul>' + lineHtml;
+        }
+        if (lineIndex === lines.length - 1 || !lines[lineIndex + 1].match(/^[-*]\s+(.+)/)) {
+          lineHtml += '</ul>';
+        }
+      } else if (line.match(/^\d+\.\s+(.+)/)) {
+        lineHtml = `<li>${parseInlineMarkdown(line.replace(/^\d+\.\s+(.+)/, '$1'))}</li>`;
+        if (lineIndex === 0 || !lines[lineIndex - 1].match(/^\d+\.\s+(.+)/)) {
+          lineHtml = '<ol>' + lineHtml;
+        }
+        if (lineIndex === lines.length - 1 || !lines[lineIndex + 1].match(/^\d+\.\s+(.+)/)) {
+          lineHtml += '</ol>';
+        }
+      } else {
+        lineHtml = `<p>${parseInlineMarkdown(line)}</p>`;
+      }
+
+      content.innerHTML += lineHtml;
+      lineIndex++;
       content.scrollTop = content.scrollHeight;
-      setTimeout(typeWord, 100); // Adjust delay (in milliseconds) as needed
+      setTimeout(typeLine, 200); // 200ms delay per line (adjust as needed)
     }
   }
 
-  // Start the typing animation
-  typeWord();
+  typeLine();
 }
