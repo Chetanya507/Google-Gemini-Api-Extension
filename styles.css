@@ -25,14 +25,11 @@
 /* Fluorescent Dot */
 .fluent-dot {
   position: fixed;
-  /* Remove initial position settings */
-  /* left: 20px; */
-  /* top: 20px; */
   width: 25px;
   height: 25px;
   background: linear-gradient(45deg, #0ff, #00f);
   border-radius: 50%;
-  cursor: grab; /* Indicate draggable element */
+  cursor: grab;
   z-index: 10000;
   animation: glow 2s infinite;
   opacity: 0.8;
@@ -55,12 +52,8 @@
 }
 
 @keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Summary Popup */
@@ -79,25 +72,18 @@
   animation: popup-animation 0.4s ease-out;
 }
 
-/* Popup Animation */
 @keyframes popup-animation {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Popup Content */
 .popup-content {
-  margin-top: 30px; /* Add margin to avoid overlap with close button */
+  margin-top: 30px;
   font-family: 'Poppins', sans-serif;
   font-size: 16px;
   line-height: 1.6;
-  color: inherit; /* Inherit color based on theme */
+  color: inherit;
 }
 
 /* Close Button */
@@ -115,10 +101,62 @@
   color: #000;
 }
 
+/* Button Container */
+.button-container {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+/* Control Buttons (Stop and Regenerate) */
+.control-button {
+  padding: 5px 10px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+  opacity: 1;
+}
+
+.control-button:hover {
+  transform: scale(1.05);
+}
+
+.control-button:active {
+  transform: scale(0.95);
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Light Theme */
 .summary-popup[data-theme="light"] {
   background: rgba(255, 255, 255, 0.95);
   color: #333;
+}
+
+.summary-popup[data-theme="light"] .close-button {
+  color: #aaa;
+}
+
+.summary-popup[data-theme="light"] .close-button:hover {
+  color: #000;
+}
+
+.summary-popup[data-theme="light"] .control-button {
+  background: #0078d7;
+  color: #fff;
+}
+
+.summary-popup[data-theme="light"] .control-button:hover {
+  background: #005ea6;
 }
 
 /* Dark Theme */
@@ -127,7 +165,6 @@
   color: #ddd;
 }
 
-/* Adjust close button color for dark theme */
 .summary-popup[data-theme="dark"] .close-button {
   color: #bbb;
 }
@@ -136,9 +173,16 @@
   color: #fff;
 }
 
-/* Add to the end of styles.css */
+.summary-popup[data-theme="dark"] .control-button {
+  background: #1e90ff;
+  color: #fff;
+}
 
-/* List styling */
+.summary-popup[data-theme="dark"] .control-button:hover {
+  background: #4682b4;
+}
+
+/* List and Paragraph Styling */
 .summary-popup ul, .summary-popup ol {
   margin: 10px 0;
   padding-left: 20px;
@@ -155,7 +199,6 @@
   margin: 10px 0;
 }
 
-/* Ensure paragraphs and lists inherit theme colors */
 .summary-popup[data-theme="light"] p,
 .summary-popup[data-theme="light"] li {
   color: #333;

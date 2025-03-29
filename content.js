@@ -57,7 +57,6 @@ chrome.runtime.onMessage.addListener((request) => {
   }
 });
 
-// Function to parse markdown and convert to HTML
 function parseMarkdown(text) {
   let lines = text.split('\n');
   let html = '';
@@ -66,70 +65,49 @@ function parseMarkdown(text) {
 
   lines.forEach((line, index) => {
     line = line.trim();
-
-    // Handle unordered lists (- or * at start)
     if (line.match(/^[-*]\s+(.+)/)) {
       if (!inUnorderedList) {
-        if (inOrderedList) {
-          html += '</ol>';
-          inOrderedList = false;
-        }
+        if (inOrderedList) html += '</ol>';
         html += '<ul>';
         inUnorderedList = true;
       }
       const content = line.replace(/^[-*]\s+(.+)/, '$1');
       html += `<li>${parseInlineMarkdown(content)}</li>`;
-    }
-    // Handle ordered lists (1. 2. etc.)
-    else if (line.match(/^\d+\.\s+(.+)/)) {
+    } else if (line.match(/^\d+\.\s+(.+)/)) {
       if (!inOrderedList) {
-        if (inUnorderedList) {
-          html += '</ul>';
-          inUnorderedList = false;
-        }
+        if (inUnorderedList) html += '</ul>';
         html += '<ol>';
         inOrderedList = true;
       }
       const content = line.replace(/^\d+\.\s+(.+)/, '$1');
       html += `<li>${parseInlineMarkdown(content)}</li>`;
+    } else {
+      if (inUnorderedList) html += '</ul>';
+      if (inOrderedList) html += '</ol>';
+      if (line) html += `<p>${parseInlineMarkdown(line)}</p>`;
+      inUnorderedList = false;
+      inOrderedList = false;
     }
-    // Regular line
-    else {
-      if (inUnorderedList) {
-        html += '</ul>';
-        inUnorderedList = false;
-      }
-      if (inOrderedList) {
-        html += '</ol>';
-        inOrderedList = false;
-      }
-      if (line) {
-        html += `<p>${parseInlineMarkdown(line)}</p>`;
-      }
-    }
-
-    // Add line break if not the last line and not part of a list
     if (index < lines.length - 1 && !inUnorderedList && !inOrderedList && line) {
       html += '<br>';
     }
   });
 
-  // Close any open lists
   if (inUnorderedList) html += '</ul>';
   if (inOrderedList) html += '</ol>';
-
   return html;
 }
 
-// Function to parse inline markdown (bold, italics)
 function parseInlineMarkdown(text) {
   let html = text;
-  html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<b><i>$1</i></b>'); // Bold + Italics
-  html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');           // Bold
-  html = html.replace(/\*(.*?)\*/g, '<i>$1</i>');              // Italics
-  html = html.replace(/_(.*?)_/g, '<i>$1</i>');                // Italics with underscore
+  html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<b><i>$1</i></b>');
+  html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+  html = html.replace(/\*(.*?)\*/g, '<i>$1</i>');
+  html = html.replace(/_(.*?)_/g, '<i>$1</i>');
   return html;
 }
+
+let animationTimeout = null;
 
 function displayPopup(summary) {
   console.log('Displaying summary:', summary);
@@ -137,6 +115,8 @@ function displayPopup(summary) {
   let popup = document.getElementById('ai-summarizer-popup');
   let content = document.getElementById('ai-summarizer-content');
   let closeButton = document.getElementById('ai-summarizer-close-button');
+  let stopButton = document.getElementById('ai-summarizer-stop-button');
+  let regenerateButton = document.getElementById('ai-summarizer-regenerate-button');
 
   if (!popup) {
     popup = document.createElement('div');
@@ -148,16 +128,61 @@ function displayPopup(summary) {
     closeButton.classList.add('close-button');
     closeButton.innerHTML = '×';
 
+    stopButton = document.createElement('button');
+    stopButton.id = 'ai-summarizer-stop-button';
+    stopButton.classList.add('control-button');
+    stopButton.innerText = 'Stop';
+
+    regenerateButton = document.createElement('button');
+    regenerateButton.id = 'ai-summarizer-regenerate-button';
+    regenerateButton.classList.add('control-button');
+    regenerateButton.innerText = 'Regenerate';
+
     content = document.createElement('div');
     content.id = 'ai-summarizer-content';
     content.classList.add('popup-content');
 
+    const buttonContainer = document.createElement('div');
+    buttonContainer.classList.add('button-container');
+    buttonContainer.appendChild(stopButton);
+    buttonContainer.appendChild(regenerateButton);
+
     popup.appendChild(closeButton);
+    popup.appendChild(buttonContainer);
     popup.appendChild(content);
     document.body.appendChild(popup);
 
     closeButton.addEventListener('click', () => {
+      if (animationTimeout) clearTimeout(animationTimeout);
       popup.style.display = 'none';
+    });
+
+    stopButton.addEventListener('click', () => {
+      if (animationTimeout) {
+        clearTimeout(animationTimeout);
+        animationTimeout = null;
+        stopButton.style.opacity = '0.5';
+        stopButton.disabled = true;
+      }
+    });
+
+    regenerateButton.addEventListener('click', () => {
+      if (animationTimeout) clearTimeout(animationTimeout);
+      content.innerHTML = '';
+      stopButton.style.opacity = '1';
+      stopButton.disabled = false;
+      regenerateButton.style.opacity = '0.5';
+      regenerateButton.disabled = true;
+      displayPopup('Summarizing, please wait...');
+      const pageUrl = window.location.href;
+      chrome.runtime.sendMessage({ action: 'summarize', url: pageUrl }, (response) => {
+        regenerateButton.style.opacity = '1';
+        regenerateButton.disabled = false;
+        if (chrome.runtime.lastError) {
+          console.error('Error sending message:', chrome.runtime.lastError);
+          displayPopup(`Error: ${chrome.runtime.lastError.message}`);
+        }
+      });
     });
   }
 
@@ -171,19 +196,25 @@ function displayPopup(summary) {
 
   if (summary.startsWith('Error:') || summary === 'Summarizing, please wait...') {
     content.innerText = summary;
+    stopButton.style.display = 'none';
+    regenerateButton.style.display = summary.startsWith('Error:') ? 'inline-block' : 'none';
     return;
   }
 
-  // Split summary into lines for structural formatting
+  stopButton.style.display = 'inline-block';
+  stopButton.style.opacity = '1';
+  stopButton.disabled = false;
+  regenerateButton.style.display = 'inline-block';
+  regenerateButton.style.opacity = '1';
+  regenerateButton.disabled = false;
+
   const lines = summary.split('\n').filter(line => line.trim());
   let lineIndex = 0;
 
   function typeLine() {
-    if (lineIndex < lines.length) {
+    if (lineIndex < lines.length && animationTimeout !== null) {
       const line = lines[lineIndex];
       let lineHtml = '';
-
-      // Handle bullet points or numbered lists
       if (line.match(/^[-*]\s+(.+)/)) {
         lineHtml = `<li>${parseInlineMarkdown(line.replace(/^[-*]\s+(.+)/, '$1'))}</li>`;
         if (lineIndex === 0 || !lines[lineIndex - 1].match(/^[-*]\s+(.+)/)) {
@@ -203,13 +234,13 @@ function displayPopup(summary) {
       } else {
         lineHtml = `<p>${parseInlineMarkdown(line)}</p>`;
       }
-
       content.innerHTML += lineHtml;
       lineIndex++;
       content.scrollTop = content.scrollHeight;
-      setTimeout(typeLine, 200); // 200ms delay per line (adjust as needed)
+      animationTimeout = setTimeout(typeLine, 200);
     }
   }
 
-  typeLine();
+  if (animationTimeout) clearTimeout(animationTimeout);
+  animationTimeout = setTimeout(typeLine, 200);
 }
