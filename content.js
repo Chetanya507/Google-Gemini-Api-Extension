@@ -1,6 +1,7 @@
 const dot = document.createElement('div');
 dot.id = 'ai-summarizer-dot';
-dot.classList.add('fluent-dot');
+dot.classList.add('modern-dot');
+dot.innerHTML = '<span class="dot-icon">✨</span>'; // Icon for a premium feel
 
 dot.style.position = 'fixed';
 dot.style.right = '20px';
@@ -121,63 +122,60 @@ function displayPopup(summary) {
   if (!popup) {
     popup = document.createElement('div');
     popup.id = 'ai-summarizer-popup';
-    popup.classList.add('summary-popup');
+    popup.classList.add('modern-popup');
 
-    closeButton = document.createElement('span');
+    const header = document.createElement('div');
+    header.classList.add('popup-header');
+
+    closeButton = document.createElement('button');
     closeButton.id = 'ai-summarizer-close-button';
-    closeButton.classList.add('close-button');
-    closeButton.innerHTML = '×';
+    closeButton.classList.add('icon-button');
+    closeButton.innerHTML = '✕';
 
     stopButton = document.createElement('button');
     stopButton.id = 'ai-summarizer-stop-button';
-    stopButton.classList.add('control-button');
-    stopButton.innerText = 'Stop';
+    stopButton.classList.add('icon-button');
+    stopButton.innerHTML = '⏹️';
 
     regenerateButton = document.createElement('button');
     regenerateButton.id = 'ai-summarizer-regenerate-button';
-    regenerateButton.classList.add('control-button');
-    regenerateButton.innerText = 'Regenerate';
+    regenerateButton.classList.add('icon-button');
+    regenerateButton.innerHTML = '🔄';
 
     content = document.createElement('div');
     content.id = 'ai-summarizer-content';
     content.classList.add('popup-content');
 
-    const buttonContainer = document.createElement('div');
-    buttonContainer.classList.add('button-container');
-    buttonContainer.appendChild(stopButton);
-    buttonContainer.appendChild(regenerateButton);
-
-    popup.appendChild(closeButton);
-    popup.appendChild(buttonContainer);
+    header.appendChild(stopButton);
+    header.appendChild(regenerateButton);
+    header.appendChild(closeButton);
+    popup.appendChild(header);
     popup.appendChild(content);
     document.body.appendChild(popup);
 
     closeButton.addEventListener('click', () => {
       if (animationTimeout) clearTimeout(animationTimeout);
-      popup.style.display = 'none';
+      popup.classList.remove('popup-open');
+      setTimeout(() => popup.style.display = 'none', 300); // Match animation duration
     });
 
     stopButton.addEventListener('click', () => {
       if (animationTimeout) {
         clearTimeout(animationTimeout);
         animationTimeout = null;
-        stopButton.style.opacity = '0.5';
-        stopButton.disabled = true;
+        stopButton.classList.add('disabled');
       }
     });
 
     regenerateButton.addEventListener('click', () => {
       if (animationTimeout) clearTimeout(animationTimeout);
       content.innerHTML = '';
-      stopButton.style.opacity = '1';
-      stopButton.disabled = false;
-      regenerateButton.style.opacity = '0.5';
-      regenerateButton.disabled = true;
+      stopButton.classList.remove('disabled');
+      regenerateButton.classList.add('disabled');
       displayPopup('Summarizing, please wait...');
       const pageUrl = window.location.href;
       chrome.runtime.sendMessage({ action: 'summarize', url: pageUrl }, (response) => {
-        regenerateButton.style.opacity = '1';
-        regenerateButton.disabled = false;
+        regenerateButton.classList.remove('disabled');
         if (chrome.runtime.lastError) {
           console.error('Error sending message:', chrome.runtime.lastError);
           displayPopup(`Error: ${chrome.runtime.lastError.message}`);
@@ -188,6 +186,7 @@ function displayPopup(summary) {
 
   content.innerHTML = '';
   popup.style.display = 'block';
+  requestAnimationFrame(() => popup.classList.add('popup-open'));
 
   chrome.storage.sync.get('selectedTheme', (data) => {
     const theme = data.selectedTheme || 'light';
@@ -202,11 +201,9 @@ function displayPopup(summary) {
   }
 
   stopButton.style.display = 'inline-block';
-  stopButton.style.opacity = '1';
-  stopButton.disabled = false;
+  stopButton.classList.remove('disabled');
   regenerateButton.style.display = 'inline-block';
-  regenerateButton.style.opacity = '1';
-  regenerateButton.disabled = false;
+  regenerateButton.classList.remove('disabled');
 
   const lines = summary.split('\n').filter(line => line.trim());
   let lineIndex = 0;
